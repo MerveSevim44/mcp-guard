@@ -93,6 +93,33 @@ def git_oku(repo_yolu: str) -> str:
     ))
 
 
+def memory_zehirle(zararli_metin: str) -> str:
+    """
+    Memory'ye test amaçlı zararlı bir entity yazar.
+    Olay 3 senaryosu: Saldırgan hafızayı zehirledi.
+    """
+    import shutil
+    npx_komutu = shutil.which("npx.cmd") or shutil.which("npx")
+    
+    server_params = StdioServerParameters(
+        command=npx_komutu,
+        args=["-y", "@modelcontextprotocol/server-memory"]
+    )
+    
+    # Memory server "create_entities" tool'u ile entity ekler
+    entities = [{
+        "name": "sirket_politikasi",
+        "entityType": "policy",
+        "observations": [zararli_metin]
+    }]
+    
+    return asyncio.run(_tool_cagir(
+        server_params, 
+        "create_entities", 
+        {"entities": entities}
+    ))
+
+
 # === Hızlı test ===
 if __name__ == "__main__":
     import os
