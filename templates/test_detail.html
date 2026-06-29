@@ -1,51 +1,142 @@
 {% extends "base.html" %}
+{% block title %}Test #{{ test.id }} — MCP Guard{% endblock %}
+
+{% set tool_meta = {
+    'fetch':      {'icon': '🌐', 'label': 'fetch'},
+    'filesystem': {'icon': '📁', 'label': 'filesystem'},
+    'memory':     {'icon': '🧠', 'label': 'memory'},
+    'git':        {'icon': '🔧', 'label': 'git'}
+} %}
+{% set risk_badge = {
+    'Temiz':  'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+    'Düşük':  'bg-amber-100 text-amber-700 ring-amber-600/20',
+    'Orta':   'bg-orange-100 text-orange-700 ring-orange-600/20',
+    'Yüksek': 'bg-red-100 text-red-700 ring-red-600/20',
+    'Hata':   'bg-slate-200 text-slate-600 ring-slate-500/20'
+} %}
 
 {% block content %}
 
-<p><a href="/">← Dashboard'a dön</a></p>
-
-<section class="detail">
-    <h2>Test #{{ test.id }}</h2>
-    
-    <div class="detail-grid">
-        <div><strong>Tool:</strong> <code>{{ test.tool }}</code></div>
-        <div><strong>Zaman:</strong> {{ test.zaman }}</div>
-        <div><strong>Input:</strong> <code>{{ test.input }}</code></div>
-        <div><strong>Risk:</strong> 
-            <span class="badge badge-{{ test.risk_seviyesi|lower }}">{{ test.risk_seviyesi }}</span>
-        </div>
-        <div><strong>Skor:</strong> {{ test.toplam_skor }}</div>
-        <div><strong>Tespit Sayısı:</strong> {{ test.tespitler|length }}</div>
+<!-- ===== Üst bar ===== -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-4">
+        <a href="/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-600 transition">
+            <span>←</span> Dashboard'a dön
+        </a>
+        <span class="text-slate-300">/</span>
+        <h1 class="text-2xl font-extrabold text-ink-900">Test #{{ test.id }}</h1>
     </div>
-    
+    <span class="self-start inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold ring-1 ring-inset {{ risk_badge.get(test.risk_seviyesi, 'bg-slate-100 text-slate-600 ring-slate-500/20') }}">
+        {{ test.risk_seviyesi }} · {{ test.toplam_skor }} puan
+    </span>
+</div>
+
+<!-- ===== Test Bilgi Kartı ===== -->
+<section class="bg-white rounded-2xl shadow-soft ring-1 ring-slate-200/60 p-6 mb-6">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">Test Bilgileri</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+        <div>
+            <div class="text-xs text-slate-400 mb-1">Tool</div>
+            <div class="font-semibold text-ink-900 flex items-center gap-2">
+                <span>{{ tool_meta.get(test.tool, {}).get('icon', '🔌') }}</span>{{ test.tool }}
+            </div>
+        </div>
+        <div>
+            <div class="text-xs text-slate-400 mb-1">Zaman</div>
+            <div class="font-medium text-slate-700">{{ test.zaman }}</div>
+        </div>
+        <div>
+            <div class="text-xs text-slate-400 mb-1">Risk Seviyesi</div>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset {{ risk_badge.get(test.risk_seviyesi, 'bg-slate-100 text-slate-600 ring-slate-500/20') }}">
+                {{ test.risk_seviyesi }}
+            </span>
+        </div>
+        <div>
+            <div class="text-xs text-slate-400 mb-1">Toplam Skor</div>
+            <div class="font-bold text-lg text-ink-900 tabular-nums">{{ test.toplam_skor }}</div>
+        </div>
+        <div>
+            <div class="text-xs text-slate-400 mb-1">Tespit Sayısı</div>
+            <div class="font-bold text-lg text-ink-900 tabular-nums">{{ test.tespitler|length }}</div>
+        </div>
+        <div class="col-span-2 lg:col-span-1">
+            <div class="text-xs text-slate-400 mb-1">Input</div>
+            <div class="font-mono text-sm text-slate-700 break-all">{{ test.input }}</div>
+        </div>
+    </div>
+
     {% if test.hata %}
-    <div class="error-box">
-        <strong>❌ Hata:</strong> {{ test.hata }}
+    <div class="mt-5 flex items-start gap-2.5 rounded-xl bg-red-50 border-l-4 border-red-500 px-4 py-3">
+        <span class="text-lg">❌</span>
+        <div>
+            <div class="font-semibold text-red-800 text-sm">Hata</div>
+            <div class="text-sm text-red-700/90 mt-0.5">{{ test.hata }}</div>
+        </div>
     </div>
     {% endif %}
 </section>
 
+<!-- ===== Tespit Kartları ===== -->
 {% if test.tespitler %}
-<section class="detections">
-    <h3>🚨 Tespit Edilen Saldırılar</h3>
-    {% for t in test.tespitler %}
-    <div class="detection-card">
-        <div class="detection-header">
-            <span class="category">{{ t.kategori }}</span>
-            <span class="points">+{{ t.puan }} puan</span>
+<section class="mb-6">
+    <h2 class="text-lg font-bold text-ink-900 mb-3 flex items-center gap-2">
+        🚨 Tespit Edilen Saldırılar
+        <span class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">{{ test.tespitler|length }}</span>
+    </h2>
+    <div class="grid gap-3">
+        {% for t in test.tespitler %}
+        <div class="detection-card bg-white rounded-xl shadow-soft ring-1 ring-slate-200/60 border-l-4 border-l-red-500 p-5 transition hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <span class="font-bold text-red-800">{{ t.kategori }}</span>
+                <span class="shrink-0 inline-flex items-center text-xs font-bold text-red-700 bg-red-100 px-2.5 py-1 rounded-full">+{{ t.puan }} puan</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-3">{{ t.aciklama }}</p>
+            <div class="text-xs text-slate-400 mb-1.5">Bulunan metin</div>
+            <code class="block bg-slate-900 text-red-300 font-mono text-xs px-3 py-2.5 rounded-lg overflow-x-auto whitespace-pre-wrap break-words">{{ t.bulunan }}</code>
         </div>
-        <div class="detection-desc">{{ t.aciklama }}</div>
-        <div class="detection-found">
-            <strong>Bulunan metin:</strong> <code>{{ t.bulunan }}</code>
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+</section>
+{% else %}
+<section class="mb-6 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 p-5 flex items-center gap-3">
+    <span class="text-2xl">✅</span>
+    <div>
+        <div class="font-semibold text-emerald-800">Saldırı tespit edilmedi</div>
+        <div class="text-sm text-emerald-700/80">Bu response içinde bilinen injection kalıbı bulunamadı.</div>
+    </div>
 </section>
 {% endif %}
 
-<section class="response">
-    <h3>Tool Response</h3>
-    <pre>{{ test.response }}</pre>
+<!-- ===== Tool Response ===== -->
+<section class="bg-white rounded-2xl shadow-soft ring-1 ring-slate-200/60 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+        <h2 class="text-sm font-bold text-ink-900 flex items-center gap-2">📄 Tool Response</h2>
+        <button id="copy-btn" type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span id="copy-label">Kopyala</span>
+        </button>
+    </div>
+    <pre id="response-text" class="bg-ink-900 text-slate-200 font-mono text-xs leading-relaxed px-5 py-4 overflow-x-auto max-h-[420px] whitespace-pre-wrap break-words">{{ test.response }}</pre>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.addEventListener('click', async () => {
+        const text = document.getElementById('response-text').innerText;
+        try {
+            await navigator.clipboard.writeText(text);
+            document.getElementById('copy-label').textContent = 'Kopyalandı!';
+            showToast('Response panoya kopyalandı.', 'success');
+            setTimeout(() => { document.getElementById('copy-label').textContent = 'Kopyala'; }, 2000);
+        } catch (e) {
+            showToast('Kopyalama başarısız oldu.', 'danger');
+        }
+    });
+</script>
 {% endblock %}

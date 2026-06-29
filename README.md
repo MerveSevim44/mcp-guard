@@ -44,7 +44,7 @@ Sistem 6 farklı saldırı kategorisinde 18+ pattern tarar:
 
 ```bash
 # 1. Reponun klonla
-git clone https://github.com/KULLANICI/mcp-guard.git
+git clone https://github.com/MerveSevim44/mcp-guard.git
 cd mcp-guard
 
 # 2. Python paketleri

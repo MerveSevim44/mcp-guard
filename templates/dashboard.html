@@ -1,94 +1,319 @@
 {% extends "base.html" %}
+{% block title %}Dashboard — MCP Guard{% endblock %}
+
+{#- ===== Yardımcı eşlemeler ===== -#}
+{% set tool_meta = {
+    'fetch':      {'icon': '🌐', 'label': 'fetch',      'desc': 'URL içeriği'},
+    'filesystem': {'icon': '📁', 'label': 'filesystem', 'desc': 'Dosya oku'},
+    'memory':     {'icon': '🧠', 'label': 'memory',     'desc': 'Hafıza sorgu'},
+    'git':        {'icon': '🔧', 'label': 'git',        'desc': 'Repo geçmişi'}
+} %}
+{% set risk_badge = {
+    'Temiz':  'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+    'Düşük':  'bg-amber-100 text-amber-700 ring-amber-600/20',
+    'Orta':   'bg-orange-100 text-orange-700 ring-orange-600/20',
+    'Yüksek': 'bg-red-100 text-red-700 ring-red-600/20',
+    'Hata':   'bg-slate-200 text-slate-600 ring-slate-500/20'
+} %}
+{% set risk_border = {
+    'Temiz':  'border-l-emerald-500',
+    'Düşük':  'border-l-amber-500',
+    'Orta':   'border-l-orange-500',
+    'Yüksek': 'border-l-red-500',
+    'Hata':   'border-l-slate-400'
+} %}
 
 {% block content %}
 
-<!-- İstatistikler -->
-<section class="stats">
-    <div class="stat-card">
-        <div class="stat-number">{{ stats.toplam }}</div>
-        <div class="stat-label">Toplam Test</div>
+<!-- ===== İstatistik Kartları ===== -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl shadow-soft p-5 ring-1 ring-slate-200/60">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Toplam Test</span>
+            <span class="text-lg">📊</span>
+        </div>
+        <div class="mt-2 text-4xl font-extrabold text-ink-900 tabular-nums">{{ stats.toplam }}</div>
     </div>
-    <div class="stat-card stat-yuksek">
-        <div class="stat-number">{{ stats.yuksek }}</div>
-        <div class="stat-label">Yüksek Risk 🚨</div>
+
+    <div class="bg-white rounded-2xl shadow-soft p-5 ring-1 ring-red-200/60 relative overflow-hidden">
+        <div class="absolute inset-y-0 left-0 w-1 bg-red-500"></div>
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-red-400">Yüksek Risk</span>
+            <span class="text-lg">🚨</span>
+        </div>
+        <div class="mt-2 text-4xl font-extrabold text-red-600 tabular-nums">{{ stats.yuksek }}</div>
     </div>
-    <div class="stat-card stat-orta">
-        <div class="stat-number">{{ stats.orta }}</div>
-        <div class="stat-label">Orta Risk ⚠️</div>
+
+    <div class="bg-white rounded-2xl shadow-soft p-5 ring-1 ring-orange-200/60 relative overflow-hidden">
+        <div class="absolute inset-y-0 left-0 w-1 bg-orange-500"></div>
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-orange-400">Orta Risk</span>
+            <span class="text-lg">⚠️</span>
+        </div>
+        <div class="mt-2 text-4xl font-extrabold text-orange-500 tabular-nums">{{ stats.orta }}</div>
     </div>
-    <div class="stat-card stat-temiz">
-        <div class="stat-number">{{ stats.temiz }}</div>
-        <div class="stat-label">Temiz ✅</div>
+
+    <div class="bg-white rounded-2xl shadow-soft p-5 ring-1 ring-emerald-200/60 relative overflow-hidden">
+        <div class="absolute inset-y-0 left-0 w-1 bg-emerald-500"></div>
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-500">Temiz</span>
+            <span class="text-lg">✅</span>
+        </div>
+        <div class="mt-2 text-4xl font-extrabold text-emerald-600 tabular-nums">{{ stats.temiz }}</div>
     </div>
 </section>
 
-<!-- Yeni Test Formu -->
-<section class="test-form">
-    <h2>Yeni Test</h2>
-    <form action="/test" method="post">
-        <label>Tool:
-            <select name="tool" required>
-                <option value="fetch">🌐 fetch (URL)</option>
-                <option value="filesystem">📁 filesystem (dosya yolu)</option>
-                <option value="memory">🧠 memory (sorgu)</option>
-                <option value="git">🔧 git (repo yolu)</option>
-            </select>
-        </label>
-        <label>Input:
-            <input type="text" name="input_degeri" placeholder="URL, dosya yolu, vs." required>
-        </label>
-        <button type="submit">Test Et</button>
-    </form>
+<!-- ===== Form + Senaryo + Grafik (3 kolon) ===== -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+    <!-- Yeni Test Formu -->
+    <section class="lg:col-span-2 bg-white rounded-2xl shadow-soft ring-1 ring-slate-200/60 p-6">
+        <div class="flex items-center gap-2 mb-1">
+            <h2 class="text-lg font-bold text-ink-900">Yeni Test Çalıştır</h2>
+        </div>
+        <p class="text-sm text-slate-500 mb-5">Bir MCP tool seçin, hedefi girin ve injection taramasını başlatın.</p>
+
+        <form id="test-form" action="/test" method="post">
+            <!-- Tool seçici kartlar -->
+            <input type="hidden" name="tool" id="tool-input" value="fetch" required>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                {% for key, meta in tool_meta.items() %}
+                <button type="button"
+                        data-tool="{{ key }}"
+                        class="tool-card group flex flex-col items-center gap-1.5 px-3 py-4 rounded-xl border-2 border-slate-200 hover:border-brand-500 hover:bg-indigo-50/40 transition-all text-center">
+                    <span class="text-2xl group-hover:scale-110 transition-transform">{{ meta.icon }}</span>
+                    <span class="text-sm font-semibold text-ink-900">{{ meta.label }}</span>
+                    <span class="text-[11px] text-slate-400">{{ meta.desc }}</span>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Input -->
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="input-field">Hedef</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" name="input_degeri" id="input-field" required
+                       placeholder="https://example.com"
+                       class="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition font-mono text-sm">
+                <button type="submit" id="submit-btn"
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-lg shadow-brand-600/20 transition active:scale-[0.98]">
+                    <span id="submit-label">Test Et</span>
+                    <svg id="submit-spinner" class="hidden animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Risk Dağılımı (donut) -->
+    <section class="bg-white rounded-2xl shadow-soft ring-1 ring-slate-200/60 p-6 flex flex-col">
+        <h2 class="text-lg font-bold text-ink-900 mb-1">Risk Dağılımı</h2>
+        <p class="text-sm text-slate-500 mb-4">Toplam {{ stats.toplam }} test</p>
+        {% if stats.toplam > 0 %}
+        <div class="relative flex-1 grid place-items-center min-h-[180px]">
+            <canvas id="riskChart" class="max-h-[200px]"></canvas>
+        </div>
+        {% else %}
+        <div class="flex-1 grid place-items-center text-sm text-slate-400 min-h-[180px]">
+            Henüz veri yok
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<!-- ===== Senaryo Aracı (Memory Zehirleme) ===== -->
+<section class="mb-8 rounded-2xl bg-gradient-to-br from-red-50 to-orange-50 ring-1 ring-red-200 p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl mt-0.5">🧪</span>
+            <div>
+                <h2 class="text-lg font-bold text-red-900">Senaryo Aracı — Memory Zehirleme</h2>
+                <p class="text-sm text-red-800/80 mt-1 max-w-2xl">
+                    Memory tool'unu test etmek için önce hafızayı kötü veriyle <strong>zehirleyin</strong>,
+                    ardından <code class="px-1.5 py-0.5 rounded bg-white/70 text-red-700 font-mono text-xs">memory</code>
+                    tool'unu çalıştırın — detector zararlı içeriği yakalayacaktır.
+                </p>
+            </div>
+        </div>
+        <form action="/memory/zehirle" method="post" class="shrink-0">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-sm shadow-lg shadow-red-700/20 transition active:scale-[0.98]">
+                ⚠️ Memory'yi Zehirle
+            </button>
+        </form>
+    </div>
 </section>
 
+<!-- ===== Test Geçmişi ===== -->
+<section class="bg-white rounded-2xl shadow-soft ring-1 ring-slate-200/60 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-6 pb-4 border-b border-slate-100">
+        <h2 class="text-lg font-bold text-ink-900">Test Geçmişi</h2>
+        {% if testler %}
+        <div class="flex flex-wrap gap-1.5" id="filter-bar">
+            <button data-filter="all"    class="filter-btn is-active px-3 py-1.5 rounded-lg text-xs font-semibold transition">Tümü</button>
+            <button data-filter="yüksek" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition">Yüksek</button>
+            <button data-filter="orta"   class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition">Orta</button>
+            <button data-filter="temiz"  class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition">Temiz</button>
+        </div>
+        {% endif %}
+    </div>
 
-<!-- Memory zehirleme butonu -->
-<section class="test-form">
-    <h2>🧪 Senaryo Aracı</h2>
-    <p style="margin-bottom: 12px; color: #666; font-size: 14px;">
-        Memory tool'unu test etmek için önce hafızayı kötü veriyle "zehirle", 
-        sonra "memory" tool'unu test et — zararlı içeriği detector yakalayacaktır.
-    </p>
-    <form action="/memory/zehirle" method="post">
-        <button type="submit" style="background: #b91c1c;">⚠️ Memory'yi Zehirle (Test)</button>
-    </form>
-</section>
-
-<!-- Test Geçmişi -->
-<section class="history">
-    <h2>Test Geçmişi</h2>
     {% if testler %}
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Tool</th>
-                <th>Input</th>
-                <th>Risk</th>
-                <th>Skor</th>
-                <th>Tespit</th>
-                <th>Zaman</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in testler %}
-            <tr class="risk-{{ t.risk_seviyesi|lower }}">
-                <td>#{{ t.id }}</td>
-                <td><code>{{ t.tool }}</code></td>
-                <td class="truncate">{{ t.input }}</td>
-                <td><span class="badge badge-{{ t.risk_seviyesi|lower }}">{{ t.risk_seviyesi }}</span></td>
-                <td>{{ t.toplam_skor }}</td>
-                <td>{{ t.tespitler|length }}</td>
-                <td>{{ t.zaman }}</td>
-                <td><a href="/test/{{ t.id }}">Detay →</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-50/80">
+                    <th class="text-left font-semibold px-6 py-3">#</th>
+                    <th class="text-left font-semibold px-4 py-3">Tool</th>
+                    <th class="text-left font-semibold px-4 py-3">Input</th>
+                    <th class="text-left font-semibold px-4 py-3">Risk</th>
+                    <th class="text-right font-semibold px-4 py-3">Skor</th>
+                    <th class="text-center font-semibold px-4 py-3">Tespit</th>
+                    <th class="text-left font-semibold px-4 py-3">Zaman</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for t in testler %}
+                <tr class="test-row group cursor-pointer border-l-4 {{ risk_border.get(t.risk_seviyesi, 'border-l-slate-300') }} hover:bg-slate-50/80 transition"
+                    data-risk="{{ t.risk_seviyesi|lower }}"
+                    onclick="window.location='/test/{{ t.id }}'">
+                    <td class="px-6 py-3 font-mono text-xs text-slate-400">#{{ t.id }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1.5 font-medium text-ink-900">
+                            <span>{{ tool_meta.get(t.tool, {}).get('icon', '🔌') }}</span>
+                            <span>{{ t.tool }}</span>
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 max-w-[240px] truncate font-mono text-xs text-slate-500" title="{{ t.input }}">{{ t.input }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset {{ risk_badge.get(t.risk_seviyesi, 'bg-slate-100 text-slate-600 ring-slate-500/20') }}">
+                            {{ t.risk_seviyesi }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-700">{{ t.toplam_skor }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if t.tespitler|length > 0 %}
+                        <span class="inline-grid place-items-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">{{ t.tespitler|length }}</span>
+                        {% else %}
+                        <span class="text-slate-300">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{{ t.zaman }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <span class="text-brand-600 font-semibold text-xs opacity-0 group-hover:opacity-100 transition whitespace-nowrap">Detay →</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Filtre boş durumu -->
+    <div id="filter-empty" class="hidden p-10 text-center text-sm text-slate-400">
+        Bu filtreye uygun test bulunamadı.
+    </div>
     {% else %}
-    <p class="empty">Henüz test yok. Yukarıdan ilk testini çalıştır.</p>
+    <div class="p-12 text-center">
+        <div class="text-4xl mb-3">🗂️</div>
+        <p class="font-semibold text-slate-600">Henüz test yok</p>
+        <p class="text-sm text-slate-400 mt-1">Yukarıdaki formdan ilk taramanızı çalıştırın ⬆️</p>
+    </div>
     {% endif %}
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // ===== Tool seçici =====
+    const placeholders = {
+        fetch: 'https://example.com',
+        filesystem: 'C:\\path\\to\\file.txt',
+        memory: '(boş bırakabilirsiniz)',
+        git: 'C:\\path\\to\\repo',
+    };
+    const toolInput = document.getElementById('tool-input');
+    const inputField = document.getElementById('input-field');
+    const toolCards = document.querySelectorAll('.tool-card');
+
+    function selectTool(tool) {
+        toolInput.value = tool;
+        inputField.placeholder = placeholders[tool] || '';
+        if (tool === 'memory') {
+            inputField.removeAttribute('required');
+        } else {
+            inputField.setAttribute('required', 'required');
+        }
+        toolCards.forEach(c => {
+            const active = c.dataset.tool === tool;
+            c.classList.toggle('border-brand-500', active);
+            c.classList.toggle('bg-indigo-50/60', active);
+            c.classList.toggle('ring-2', active);
+            c.classList.toggle('ring-brand-500/20', active);
+            c.classList.toggle('border-slate-200', !active);
+        });
+    }
+    toolCards.forEach(card => card.addEventListener('click', () => selectTool(card.dataset.tool)));
+    selectTool('fetch'); // varsayılan
+
+    // ===== Loading state =====
+    document.getElementById('test-form').addEventListener('submit', function () {
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('submit-btn').classList.add('opacity-80', 'cursor-wait');
+        document.getElementById('submit-label').textContent = 'Test çalışıyor...';
+        document.getElementById('submit-spinner').classList.remove('hidden');
+    });
+
+    // ===== Geçmiş filtreleme =====
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const rows = document.querySelectorAll('.test-row');
+    const filterEmpty = document.getElementById('filter-empty');
+    filterBtns.forEach(btn => btn.addEventListener('click', () => {
+        const f = btn.dataset.filter;
+        filterBtns.forEach(b => b.classList.toggle('is-active', b === btn));
+        let visible = 0;
+        rows.forEach(row => {
+            const show = (f === 'all') || (row.dataset.risk === f);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (filterEmpty) filterEmpty.classList.toggle('hidden', visible !== 0);
+    }));
+
+    // ===== Donut chart =====
+    {% if stats.toplam > 0 %}
+    (function () {
+        const ctx = document.getElementById('riskChart');
+        if (!ctx) return;
+        const yuksek = {{ stats.yuksek }};
+        const orta   = {{ stats.orta }};
+        const temiz  = {{ stats.temiz }};
+        const diger  = Math.max(0, {{ stats.toplam }} - yuksek - orta - temiz);
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Yüksek', 'Orta', 'Temiz', 'Diğer'],
+                datasets: [{
+                    data: [yuksek, orta, temiz, diger],
+                    backgroundColor: ['#dc2626', '#f97316', '#10b981', '#cbd5e1'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6,
+                }],
+            },
+            options: {
+                cutout: '64%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 10, boxHeight: 10, padding: 12, font: { size: 12, family: 'Inter' } },
+                    },
+                },
+            },
+        });
+    })();
+    {% endif %}
+</script>
 {% endblock %}

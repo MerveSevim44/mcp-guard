@@ -2,23 +2,127 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MCP Guard{% endblock %}</title>
+
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', '"Fira Code"', 'ui-monospace', 'Menlo', 'monospace'],
+                    },
+                    colors: {
+                        ink: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        },
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                    },
+                    boxShadow: {
+                        soft: '0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
+                        card: '0 4px 20px -4px rgba(15,23,42,0.10)',
+                    },
+                    borderRadius: {
+                        xl: '12px',
+                        '2xl': '16px',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Custom styles -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <header>
-        <div class="container">
-            <h1>🛡️ MCP Guard</h1>
-            <p class="subtitle">MCP Prompt Injection Detector</p>
+<body class="min-h-screen bg-slate-100 text-ink-900 font-sans antialiased flex flex-col">
+
+    <!-- ===== Header ===== -->
+    <header class="bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="grid place-items-center w-11 h-11 rounded-xl bg-brand-600/90 shadow-lg ring-1 ring-white/10 text-2xl group-hover:scale-105 transition-transform">
+                    🛡️
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight leading-none">MCP Guard</h1>
+                    <p class="text-xs text-slate-300/80 mt-1">MCP Prompt Injection Detector</p>
+                </div>
+            </a>
+            <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full bg-white/10 text-slate-200 ring-1 ring-white/15">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Araştırma Prototipi
+            </span>
         </div>
     </header>
-    
-    <main class="container">
+
+    <!-- ===== Main ===== -->
+    <main class="max-w-6xl w-full mx-auto px-5 py-8 flex-1">
         {% block content %}{% endblock %}
     </main>
-    
-    <footer class="container">
-        <p>Prototip — Prompt Injection Araştırması</p>
+
+    <!-- ===== Footer ===== -->
+    <footer class="border-t border-slate-200">
+        <div class="max-w-6xl mx-auto px-5 py-6 text-center text-xs text-slate-500">
+            MCP Guard &middot; Prompt Injection Araştırma Prototipi &middot;
+            <span class="text-slate-400">FastAPI + Jinja2 + SQLite</span>
+        </div>
     </footer>
+
+    <!-- ===== Toast container ===== -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5"></div>
+
+    <script>
+        // --- Toast helper ---
+        function showToast(message, type) {
+            type = type || 'success';
+            const colors = {
+                success: 'border-emerald-500 text-emerald-800 bg-emerald-50',
+                danger:  'border-red-500 text-red-800 bg-red-50',
+                info:    'border-brand-600 text-brand-700 bg-indigo-50',
+            };
+            const icons = { success: '✅', danger: '⚠️', info: 'ℹ️' };
+            const el = document.createElement('div');
+            el.className = 'toast flex items-center gap-2.5 pl-3 pr-4 py-3 rounded-xl border-l-4 shadow-card text-sm font-medium ' + (colors[type] || colors.info);
+            el.innerHTML = '<span class="text-base">' + (icons[type] || icons.info) + '</span><span>' + message + '</span>';
+            document.getElementById('toast-container').appendChild(el);
+            requestAnimationFrame(() => el.classList.add('toast--in'));
+            setTimeout(() => {
+                el.classList.remove('toast--in');
+                setTimeout(() => el.remove(), 300);
+            }, 3800);
+        }
+
+        // --- Read ?msg= query param on load and clean URL ---
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const msg = params.get('msg');
+            const messages = {
+                memory_zehirlendi: ['Memory zararlı veriyle zehirlendi. Şimdi "memory" tool\'unu test edin.', 'danger'],
+                test_ok: ['Test başarıyla çalıştırıldı.', 'success'],
+            };
+            if (msg && messages[msg]) {
+                showToast(messages[msg][0], messages[msg][1]);
+                params.delete('msg');
+                const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', clean);
+            }
+        })();
+    </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>
