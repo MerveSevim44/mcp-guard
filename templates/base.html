@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}MCP Guard{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🛡️ MCP Guard</h1>
+            <p class="subtitle">MCP Prompt Injection Detector</p>
+        </div>
+    </header>
+    
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="container">
+        <p>Prototip — Prompt Injection Araştırması</p>
+    </footer>
+</body>
+</html>

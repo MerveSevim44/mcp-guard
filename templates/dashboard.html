@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- İstatistikler -->
+<section class="stats">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.toplam }}</div>
+        <div class="stat-label">Toplam Test</div>
+    </div>
+    <div class="stat-card stat-yuksek">
+        <div class="stat-number">{{ stats.yuksek }}</div>
+        <div class="stat-label">Yüksek Risk 🚨</div>
+    </div>
+    <div class="stat-card stat-orta">
+        <div class="stat-number">{{ stats.orta }}</div>
+        <div class="stat-label">Orta Risk ⚠️</div>
+    </div>
+    <div class="stat-card stat-temiz">
+        <div class="stat-number">{{ stats.temiz }}</div>
+        <div class="stat-label">Temiz ✅</div>
+    </div>
+</section>
+
+<!-- Yeni Test Formu -->
+<section class="test-form">
+    <h2>Yeni Test</h2>
+    <form action="/test" method="post">
+        <label>Tool:
+            <select name="tool" required>
+                <option value="fetch">🌐 fetch (URL)</option>
+                <option value="filesystem">📁 filesystem (dosya yolu)</option>
+                <option value="memory">🧠 memory (sorgu)</option>
+                <option value="git">🔧 git (repo yolu)</option>
+            </select>
+        </label>
+        <label>Input:
+            <input type="text" name="input_degeri" placeholder="URL, dosya yolu, vs." required>
+        </label>
+        <button type="submit">Test Et</button>
+    </form>
+</section>
+
+<!-- Test Geçmişi -->
+<section class="history">
+    <h2>Test Geçmişi</h2>
+    {% if testler %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Tool</th>
+                <th>Input</th>
+                <th>Risk</th>
+                <th>Skor</th>
+                <th>Tespit</th>
+                <th>Zaman</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in testler %}
+            <tr class="risk-{{ t.risk_seviyesi|lower }}">
+                <td>#{{ t.id }}</td>
+                <td><code>{{ t.tool }}</code></td>
+                <td class="truncate">{{ t.input }}</td>
+                <td><span class="badge badge-{{ t.risk_seviyesi|lower }}">{{ t.risk_seviyesi }}</span></td>
+                <td>{{ t.toplam_skor }}</td>
+                <td>{{ t.tespitler|length }}</td>
+                <td>{{ t.zaman }}</td>
+                <td><a href="/test/{{ t.id }}">Detay →</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">Henüz test yok. Yukarıdan ilk testini çalıştır.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

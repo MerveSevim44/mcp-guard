@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<p><a href="/">← Dashboard'a dön</a></p>
+
+<section class="detail">
+    <h2>Test #{{ test.id }}</h2>
+    
+    <div class="detail-grid">
+        <div><strong>Tool:</strong> <code>{{ test.tool }}</code></div>
+        <div><strong>Zaman:</strong> {{ test.zaman }}</div>
+        <div><strong>Input:</strong> <code>{{ test.input }}</code></div>
+        <div><strong>Risk:</strong> 
+            <span class="badge badge-{{ test.risk_seviyesi|lower }}">{{ test.risk_seviyesi }}</span>
+        </div>
+        <div><strong>Skor:</strong> {{ test.toplam_skor }}</div>
+        <div><strong>Tespit Sayısı:</strong> {{ test.tespitler|length }}</div>
+    </div>
+    
+    {% if test.hata %}
+    <div class="error-box">
+        <strong>❌ Hata:</strong> {{ test.hata }}
+    </div>
+    {% endif %}
+</section>
+
+{% if test.tespitler %}
+<section class="detections">
+    <h3>🚨 Tespit Edilen Saldırılar</h3>
+    {% for t in test.tespitler %}
+    <div class="detection-card">
+        <div class="detection-header">
+            <span class="category">{{ t.kategori }}</span>
+            <span class="points">+{{ t.puan }} puan</span>
+        </div>
+        <div class="detection-desc">{{ t.aciklama }}</div>
+        <div class="detection-found">
+            <strong>Bulunan metin:</strong> <code>{{ t.bulunan }}</code>
+        </div>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section class="response">
+    <h3>Tool Response</h3>
+    <pre>{{ test.response }}</pre>
+</section>
+
+{% endblock %}
